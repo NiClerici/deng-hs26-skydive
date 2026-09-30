@@ -6,6 +6,7 @@ Batch pipeline that turns hourly weather data into a **"jumpable or not"** score
 - **Users:** skydivers and dropzone operators.
 - **Question:** Given the weather forecast for next week, can we jump at the Dropzone? 
 To answer this, we compare historical flight data (when jumps actually took place) with the weather at that time and get a prediction from it.
+- **Label:** an hour counts as jumpable if at least one departure took place under similar weather in the historical data.
 - **Data product:** Prediction for the next 7 days of whether it is possible to jump on a specific day or hour
 
 
@@ -19,11 +20,17 @@ To answer this, we compare historical flight data (when jumps actually took plac
 | Update / history | daily, scope: 2026 (Jan to today) | daily, 7 days ahead | daily, scope: 2026; history is available back to at least 2019 (tested) |
 | Volume | 6 dropzones x all of 2026 | small | 15 Departures per Day * all of 2026 |
 
-Locations: [`data/siwss_dropzones.csv`](data/swiss_dropzones.csv), 6 Swiss dropzones (coordinates approximate, to verify).
+Locations: [`data/swiss_dropzones.csv`](data/swiss_dropzones.csv), 6 Swiss dropzones (coordinates approximate, to verify).
 
+
+## Risks
+- Flights are only a proxy: a departure is not a jump, and no departure may mean no demand rather than bad weather.
+- Weather data is model output, not measurement; coarse grid in the Alps.
+- API rate limits and access restrictions (OpenSky).
+- UTC vs local time when joining weather and flights.
 
 ## Planned stack
-Python ingestion, Apache Airflow, PostgreSQL (local).
+Python ingestion, Apache Airflow, Docker Compose, PostgreSQL (local); Terraform, GCS, BigQuery (final); classifier on weather features for the prediction.
 
 ## Docs
 [Architecture v0.1](docs/architecture.md) | [Backlog](docs/backlog.md)

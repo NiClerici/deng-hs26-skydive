@@ -1,18 +1,19 @@
 # Backlog
 
 **Pitch (W3)**
-- [x] README, data source, use case, Architecture v0.1
+- [x] README, data sources, use case, Architecture v0.1
 - [ ] Verify dropzone coordinates
 
 **Midterm (W7)**
-- [ ] Ingestion script (Nico)
-- [ ] Postgres schema + Docker Compose (Nico)
-- [ ] Airflow DAG with backfill and retries (Nico)
-- [ ] First transformation: jumpability score (TBD)
-- [ ] Architecture v0.2, setup and verification steps (both)
+- [ ] Ingestion scripts (weather, forecast, flights)
+- [ ] Postgres schema + Docker Compose
+- [ ] Airflow DAG with backfill and retries
+- [ ] First transformation: join weather and flights
+- [ ] Architecture v0.2, setup and verification steps
 
 **Final (W14)**
-- [ ] Terraform: GCS + BigQuery (TBD)
-- [ ] Ingestion to GCS, transformation to BigQuery (both)
-- [ ] Table grain, partitioning and clustering (TBD)
-- [ ] Data-quality checks, final architecture, limitations (both)
+- [ ] Terraform: GCS + BigQuery
+- [ ] Ingestion to GCS, transformation to BigQuery
+- [ ] Table grain, partitioning, clustering
+- [ ] Prediction model on weather features
+- [ ] Data-quality checks, final architecture, limitations
