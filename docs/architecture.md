@@ -4,9 +4,9 @@
 flowchart LR
     API[Open-Meteo API] --> ING[Python ingestion]
     SEED[dropzones.csv] --> ING
-    ING --> RAW[(Raw: Postgres, later GCS)]
+    ING --> RAW[Postgres]
     RAW --> TRF[SQL transformation]
-    TRF --> CUR[(Curated: Postgres, later BigQuery)]
+    TRF --> CUR[Postgres]
     CUR --> USE[Analysis: jumpability per DZ]
     AF[Airflow in Docker Compose] -.schedules.-> ING
     AF -.schedules.-> TRF
