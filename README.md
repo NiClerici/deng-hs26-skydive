@@ -33,7 +33,7 @@ Locations: [`data/swiss_dropzones.csv`](data/swiss_dropzones.csv), 6 Swiss dropz
 Python ingestion, Apache Airflow, Docker Compose, PostgreSQL (local); Terraform, GCS, BigQuery (final); classifier on weather features for the prediction.
 
 ## Docs
-[Architecture v0.1](docs/architecture.md) | [Backlog](docs/backlog.md)
+[Architecture v0.1](docs/architecture.md)
 
 ## Team
 - Nico Clerici
