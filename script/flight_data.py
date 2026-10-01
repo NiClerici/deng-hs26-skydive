@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from opensky_api import OpenSkyApi
 from datetime import datetime, timedelta, timezone
 
-begin = datetime(2026,9,26,tzinfo=timezone.utc)
-end = datetime(2026,9,28,tzinfo=timezone.utc)
+begin = datetime(2026,1,1,tzinfo=timezone.utc)
+end = datetime(2026,9,29,tzinfo=timezone.utc)
 
 load_dotenv()
 
@@ -15,23 +15,37 @@ api = OpenSkyApi(client_id=os.getenv("CLIENT_ID"), client_secret=os.getenv("CLIE
 dropzones = pd.read_csv("data/swiss_dropzones.csv", usecols=["dz_id", "name", "lat", "lon"])
 
 for index, row in dropzones.iterrows():
-
-    #max 2tage pro abfrage erlaubt
-    day = begin
-    flight_data = {
-        "date": [],"DZ_name":[],"icao24": [],"callsign": [],"DepartureAirport": [],
-        "ArrivalAirport": [],"Duration": []
-    }
-
-
     AirportICAO = row['dz_id']
     dz_name = row['name']
     print(f"Dropzone: {AirportICAO}, Name: {dz_name}")
 
-    while day < end:
-        day_end = min(day + timedelta(days=2),end)
+    csv_path = f"data/flights/flight_{AirportICAO}_{dz_name.replace(' ', '_').lower()}.csv"
+    progress_path = f"data/flights/.progress_{AirportICAO}.txt"
 
-        departures = api.get_departures_by_airport(AirportICAO, int(day.timestamp()), int(day_end.timestamp())-1)
+    #max 2tage pro abfrage erlaubt und wiederaufnahme der letzten abfrage
+    day = begin
+    flight_data = {
+        "date": [],"DZ_name":[],"icao24": [],"callsign": [],"DepartureAirport": [],
+        "ArrivalAirport": [],"Duration": []
+        }
+
+    stop = False
+
+    while day < end:
+
+        day_end = min(day + timedelta(days=2),end)
+        
+        if os.path.exists(progress_path):
+            with open(progress_path) as f:
+                day = max(begin,datetime.fromisoformat(f.read().strip()))
+
+        try:
+            departures = api.get_departures_by_airport(AirportICAO, int(day.timestamp()), int(day_end.timestamp())-1)
+        except Exception as e:
+            print(f" Abbruch bei {day.date()}: {e}")
+            stop = True
+            break
+
         for  flight in departures or []:
 
             flight_data["date"].append(datetime.fromtimestamp(flight.firstSeen, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
