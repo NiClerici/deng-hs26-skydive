@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from opensky_api import OpenSkyApi
 from datetime import datetime, timedelta, timezone
 
-begin = datetime(2026,9,21,tzinfo=timezone.utc)
+begin = datetime(2026,9,26,tzinfo=timezone.utc)
 end = datetime(2026,9,28,tzinfo=timezone.utc)
 
 load_dotenv()
@@ -24,10 +24,9 @@ for index, row in dropzones.iterrows():
     print(f"Dropzone: {AirportICAO}, Name: {dz_name}")
 
     while day < end:
-        day_end = min(day + timedelta(days=1),end)
+        day_end = min(day + timedelta(days=2),end)
 
-        departures = api.get_departures_by_airport(AirportICAO, int(day.timestamp()), int(day_end.timestamp()))
-        arrivals = api.get_arrivals_by_airport(AirportICAO,int(day.timestamp()), int(day_end.timestamp()))
+        departures = api.get_departures_by_airport(AirportICAO, int(day.timestamp()), int(day_end.timestamp())-1)
         print(departures)
         for  flight in departures or []:
             print(flight)
