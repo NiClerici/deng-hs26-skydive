@@ -15,12 +15,12 @@ To answer this, we compare historical flight data (when jumps actually took plac
 ## Data sources
 | | Historical weather | Weather forecast | Flight data |
 |---|---|---|---|
-| Provider | [Open-Meteo Forecast API](https://open-meteo.com/en/docs) with `past_days` for the daily incremental load; one-off backfill (Jan 2026 to today) via [Historical Forecast API](https://open-meteo.com/en/docs/historical-forecast-api) (no API key) | [Open-Meteo Forecast API](https://open-meteo.com/en/docs) (no API key) | [OpenSky Network API](https://openskynetwork.github.io/opensky-api/)|
+| Provider | [Open-Meteo Historical Forecast API](https://open-meteo.com/en/docs/historical-forecast-api) (no API key) via `start_date` / `end_date`.| [Open-Meteo Forecast API](https://open-meteo.com/en/docs) (no API key) | [OpenSky Network API](https://openskynetwork.github.io/opensky-api/)|
 | Purpose | Training: weather at the time of each flight | Input for the next 7 days prediction | Proxy for jump operations: jump aircraft repeatedly climbing and descending over a dropzone |
 | Access / format | REST, JSON, hourly time series per lat/lon | REST, JSON, hourly time series per lat/lon | REST, JSON, `/flights/departure` per airfield; OAuth2 client credentials (`CLIENT_ID` / `CLIENT_SECRET`, see [`.env.example`](.env.example)); max. 2-day window per request, credit / rate limit |
 | Variables | temperature 2 m, wind 10 m, gusts, wind at 850/700 hPa, cloud cover low, precipitation, visibility | same as historical | see schema |
 | Schema | hourly: `date` + 8 float variables | same as historical | per flight: `icao24`, `callsign`, `firstSeen` / `lastSeen` (epoch), `estDepartureAirport` / `estArrivalAirport` |
-| Update / history | daily, scope: 2026 (Jan to today) | daily, 7 days ahead | daily, scope: 2026; history is available back to at least 2019 (tested) |
+| Update / history | one-off backfill 2026-01-01 to end of september | daily, 7 days ahead | daily |
 | Volume | 6 dropzones x all of 2026 | small | 15 Departures per Day * all of 2026 |
 
 Locations: [`data/swiss_dropzones.csv`](data/swiss_dropzones.csv), 6 Swiss dropzones (airfield ICAO code, coordinates, elevation).

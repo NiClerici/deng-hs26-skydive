@@ -4,5 +4,4 @@ data/raw/
 .terraform/
 *.tfstate*
 data/forecast/
-data/past/
 data/flights/

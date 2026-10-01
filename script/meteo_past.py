@@ -1,10 +1,11 @@
-from datetime import date
+from datetime import date, timedelta
 import openmeteo_requests as omr
 import pandas as pd
 
 openmeteo = omr.Client()
 
-url = "https://api.open-meteo.com/v1/forecast"
+url = "https://historical-forecast-api.open-meteo.com/v1/forecast"
+
 
 dropzones = pd.read_csv("data/swiss_dropzones.csv", usecols=["dz_id", "name", "lat", "lon"])
 
@@ -14,8 +15,8 @@ for index, row in dropzones.iterrows():
         "longitude": row['lon'],
         "hourly":  ["temperature_2m", "wind_speed_10m", "wind_gusts_10m", "cloud_cover_low", "precipitation", "visibility", "wind_speed_850hPa", "wind_speed_700hPa"],
         "timezone": "Europe/Zurich",
-        "past_days": 10,
-        "forecast_days": 0,
+        "start_date": "2026-01-01",
+        "end_date": "2026-09-29"
     }
 
     responses = openmeteo.weather_api(url, params=params)
@@ -53,4 +54,4 @@ for index, row in dropzones.iterrows():
 
     hourly_dataframe = pd.DataFrame(data=hourly_data)
     hourly_dataframe["date"] = hourly_dataframe["date"].dt.tz_convert("Europe/Zurich")
-    hourly_dataframe.to_csv("data/past/weather_" + row['dz_id'] + "_" + date.today().strftime("%Y-%m-%d") + "_" + row['name'].replace(" ", "_").lower() + "_past10d.csv", index=False)
+    hourly_dataframe.to_csv("data/past/weather_" + row['dz_id'] + "_" + date.today().strftime("%Y-%m-%d") + "_" + row['name'].replace(" ", "_").lower() + "_since_2026-01-01.csv", index=False)
