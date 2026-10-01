@@ -24,6 +24,10 @@ for index, row in dropzones.iterrows():
 
     #max 2tage pro abfrage erlaubt und wiederaufnahme der letzten abfrage
     day = begin
+    if os.path.exists(progress_path):
+        with open(progress_path) as f:
+            day = max(begin,datetime.fromisoformat(f.read().strip()))
+
     flight_data = {
         "date": [],"DZ_name":[],"icao24": [],"callsign": [],"DepartureAirport": [],
         "ArrivalAirport": [],"Duration": []
@@ -34,10 +38,6 @@ for index, row in dropzones.iterrows():
     while day < end:
 
         day_end = min(day + timedelta(days=2),end)
-        
-        if os.path.exists(progress_path):
-            with open(progress_path) as f:
-                day = max(begin,datetime.fromisoformat(f.read().strip()))
 
         try:
             departures = api.get_departures_by_airport(AirportICAO, int(day.timestamp()), int(day_end.timestamp())-1)
@@ -51,14 +51,20 @@ for index, row in dropzones.iterrows():
             flight_data["date"].append(datetime.fromtimestamp(flight.firstSeen, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
             flight_data["DZ_name"].append(dz_name)
             flight_data["icao24"].append(flight.icao24)
-            flight_data["callsign"].append(flight.callsign.strip() or "")
+            flight_data["callsign"].append((flight.callsign or "").strip())
             flight_data["DepartureAirport"].append(AirportICAO)
             flight_data["ArrivalAirport"].append(flight.estArrivalAirport)
             flight_data["Duration"].append(flight.lastSeen - flight.firstSeen)
 
+        if flight_data["date"]:
+            pd.DataFrame(flight_data).to_csv(csv_path,mode="a",index=False,header=not os.path.exists(csv_path))
+
+        flight_data = {k: [] for k in flight_data}
+
+        with open(progress_path, "w") as f:
+            f.write(day_end.isoformat())
+        
         day = day_end
 
-    pd.DataFrame(flight_data).to_csv("data/flights/flight_" + AirportICAO + "_" + dz_name.replace(" ", "_").lower() + "_" + begin.strftime("%Y-%m-%d") + "_" + end.strftime("%Y-%m-%d") + ".csv", index=False)
-
-        
-        
+    if stop:
+        break
