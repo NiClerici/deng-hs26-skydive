@@ -18,6 +18,11 @@ for index, row in dropzones.iterrows():
 
     #max 2tage pro abfrage erlaubt
     day = begin
+    flight_data = {
+        "date": [],"DZ_name":[],"icao24": [],"callsign": [],"DepartureAirport": [],
+        "ArrivalAirport": [],"Duration": []
+    }
+
 
     AirportICAO = row['dz_id']
     dz_name = row['name']
@@ -25,11 +30,6 @@ for index, row in dropzones.iterrows():
 
     while day < end:
         day_end = min(day + timedelta(days=2),end)
-
-        flight_data = {
-            "date": [],"DZ_name":[],"icao24": [],"callsign": [],"DepartureAirport": [],
-            "ArrivalAirport": [],"Duration": []
-        }
 
         departures = api.get_departures_by_airport(AirportICAO, int(day.timestamp()), int(day_end.timestamp())-1)
         for  flight in departures or []:

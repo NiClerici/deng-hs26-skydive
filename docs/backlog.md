@@ -2,10 +2,12 @@
 
 **Pitch (W3)**
 - [x] README, data sources, use case, Architecture v0.1
-- [ ] Verify dropzone coordinates
+- [x] Verify dropzone coordinates
 
 **Midterm (W7)**
 - [ ] Ingestion scripts (weather, forecast, flights)
+- [ ] Seed list of jump aircraft (`data/jump_aircraft.csv`)
+- [ ] Weather backfill script (Historical Forecast API)
 - [ ] Postgres schema + Docker Compose
 - [ ] Airflow DAG with backfill and retries
 - [ ] First transformation: join weather and flights

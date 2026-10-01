@@ -1,7 +1,7 @@
 [project]
 name = "deng-hs26-skydive"
 version = "0.1.0"
-description = "Add your description here"
+description = "Batch pipeline that scores whether skydiving is possible per Swiss dropzone and hour"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
