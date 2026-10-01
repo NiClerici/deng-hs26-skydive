@@ -1,6 +1,6 @@
-# Local stack: PostgreSQL + Python ingestion container.
+# Local stack: PostgreSQL + pgAdmin + Python ingestion container.
 # Run from the repo root:
-#   docker compose -f storage/docker-compose.yml up -d postgres
+#   docker compose -f storage/docker-compose.yml up -d postgres pgadmin   (pgAdmin: http://localhost:5050)
 #   docker compose -f storage/docker-compose.yml run --rm ingestion python script/meteo_past.py
 # Credentials come from ../.env (see .env.example), nothing is hardcoded here.
 
@@ -31,14 +31,30 @@ services:
       POSTGRES_PORT: 5432
     volumes:
       - ../data:/app/data  # CSV output lands on the host
+      - ./scripts:/app/storage/scripts:ro  # load scripts, edits apply without rebuilding
+      - ./sql:/app/storage/sql:ro  # schema.sql, applied by the load scripts
     depends_on:
       postgres:
         condition: service_healthy
     networks: [skydive]
     command: ["sh", "-c", "python script/meteo_past.py && python script/meteo_forecast.py"]
 
+  pgadmin:
+    image: dpage/pgadmin4:9
+    env_file: ../.env  # PGADMIN_DEFAULT_EMAIL, PGADMIN_DEFAULT_PASSWORD
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - ./pgadmin-servers.json:/pgadmin4/servers.json:ro  # pre-registers the postgres service
+      - pgadmin:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [skydive]
+
 volumes:
   pgdata:
+  pgadmin:
 
 networks:
   skydive:

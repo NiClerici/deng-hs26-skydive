@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "skydive (docker)",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "skydive",
+      "Username": "skydive",
+      "SSLMode": "prefer"
+    }
+  }
+}
