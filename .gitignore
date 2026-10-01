@@ -3,3 +3,6 @@ __pycache__/
 data/raw/
 .terraform/
 *.tfstate*
+data/forecast/
+data/past/
+data/flight/

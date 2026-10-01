@@ -53,4 +53,4 @@ for index, row in dropzones.iterrows():
 
     hourly_dataframe = pd.DataFrame(data=hourly_data)
     hourly_dataframe["date"] = hourly_dataframe["date"].dt.tz_convert("Europe/Zurich")
-    hourly_dataframe.to_csv("data/weather_" + row['dz_id'] + "_" + date.today().strftime("%Y-%m-%d") + "_" + row['name'].replace(" ", "_").lower() + "_past10d.csv", index=False)
+    hourly_dataframe.to_csv("data/past/weather_" + row['dz_id'] + "_" + date.today().strftime("%Y-%m-%d") + "_" + row['name'].replace(" ", "_").lower() + "_past10d.csv", index=False)
