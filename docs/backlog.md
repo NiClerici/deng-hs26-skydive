@@ -5,7 +5,7 @@ Owner in brackets, see [division of responsibilities](architecture.md#division-o
 **Pitch (W3)**
 - [x] README, data sources, use case, Architecture v0.1 (Both)
 - [x] Division of responsibilities (Both)
-- [ ] Verify dropzone coordinates (Jan)
+- [x] Verify dropzone coordinates (Jan)
 - [ ] Identify jump aircraft for LSZL, LSZO, LSZG, LSZK (Nico)
 
 **Midterm (W7, submit by Thu 22.10.2026 15:30)**

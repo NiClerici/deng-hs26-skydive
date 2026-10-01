@@ -42,6 +42,12 @@ Python ingestion, Apache Airflow, Docker Compose, PostgreSQL (local); Terraform,
 2. `cp .env.example .env` and add your OpenSky API client credentials
 3. `uv run python script/<name>.py` (`meteo_past.py`, `meteo_forecast.py`, `flight_data.py`)
 
+With Docker instead (PostgreSQL + ingestion container, needs the Postgres variables from `.env.example` in `.env`):
+1. `docker compose -f storage/docker-compose.yml up -d postgres`
+2. `docker compose -f storage/docker-compose.yml run --rm ingestion` runs both weather scripts; for another script append it, e.g. `... run --rm ingestion python script/flight_data.py`
+3. Check the database: `docker compose -f storage/docker-compose.yml exec postgres psql -U skydive -d skydive`
+4. Stop: `docker compose -f storage/docker-compose.yml down` (add `-v` to also delete the database volume)
+
 ## Docs
 - [Architecture v0.1 and division of responsibilities](docs/architecture.md)
 - [Backlog](docs/backlog.md)
