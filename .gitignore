@@ -5,4 +5,4 @@ data/raw/
 *.tfstate*
 data/forecast/
 data/past/
-data/flight/
+data/flights/
