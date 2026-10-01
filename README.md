@@ -29,7 +29,9 @@ Locations: [`data/swiss_dropzones.csv`](data/swiss_dropzones.csv), 6 Swiss dropz
 ## Risks
 - Flights are only a proxy: a departure is not a jump, and no departure may mean no demand rather than bad weather.
 - Weather data is model output, not measurement; coarse grid in the Alps.
-- API rate limits and access restrictions (OpenSky).
+- Identifying jump aircraft: OpenSky returns all departures (flight schools, private planes, rescue helicopters) and no longer provides aircraft types. We keep a list of known jump aircraft per dropzone ([`data/jump_aircraft.csv`](data/jump_aircraft.csv)); it currently covers only Bex and Reichenbach.
+- Receiver coverage in Alpine valleys is incomplete, so some flights or parts of tracks are missing.
+- API rate limits and access restrictions (OpenSky): the daily quota was already reached during testing, so the 2026 backfill has to be spread over several days.
 - UTC vs local time when joining weather and flights.
 
 ## Planned stack
@@ -41,7 +43,7 @@ Python ingestion, Apache Airflow, Docker Compose, PostgreSQL (local); Terraform,
 3. `uv run python script/<name>.py` (`meteo_past.py`, `meteo_forecast.py`, `flight_data.py`)
 
 ## Docs
-- [Architecture v0.1](docs/architecture.md)
+- [Architecture v0.1 and division of responsibilities](docs/architecture.md)
 - [Backlog](docs/backlog.md)
 
 ## Team
