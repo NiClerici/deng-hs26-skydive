@@ -1,3 +1,4 @@
+from datetime import date
 import openmeteo_requests as omr
 import pandas as pd
 
@@ -13,6 +14,8 @@ for index, row in dropzones.iterrows():
         "longitude": row['lon'],
         "hourly":  ["temperature_2m", "wind_speed_10m", "wind_gusts_10m", "cloud_cover_low", "precipitation", "visibility", "wind_speed_850hPa", "wind_speed_700hPa"],
         "timezone": "Europe/Zurich",
+        "past_days": 10,
+        "forecast_days": 0,
     }
 
     responses = openmeteo.weather_api(url, params=params)
@@ -50,4 +53,4 @@ for index, row in dropzones.iterrows():
 
     hourly_dataframe = pd.DataFrame(data=hourly_data)
     hourly_dataframe["date"] = hourly_dataframe["date"].dt.tz_convert("Europe/Zurich")
-    hourly_dataframe.head(10).to_csv("data/weather_lsgb_2026-08_" + row['name'].replace(" ", "_").lower() + ".csv", index=False)
+    hourly_dataframe.to_csv("data/weather_lsgb_" + date.today().strftime("%Y-%m-%d") + "_" + row['name'].replace(" ", "_").lower() + "_past10d.csv", index=False)
