@@ -14,6 +14,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro #docker-entrypoint-initdb.d is a path from docker that executes scripts on first container start
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -32,7 +33,6 @@ services:
     volumes:
       - ../data:/app/data  # CSV output lands on the host
       - ./scripts:/app/storage/scripts:ro  # load scripts, edits apply without rebuilding
-      - ./sql:/app/storage/sql:ro  # schema.sql, applied by the load scripts
     depends_on:
       postgres:
         condition: service_healthy

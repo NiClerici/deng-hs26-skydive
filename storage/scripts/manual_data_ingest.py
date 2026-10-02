@@ -10,9 +10,6 @@ import pandas as pd
 
 from sqlalchemy import URL, create_engine, text
 
-SCHEMA = Path(__file__).resolve().parent.parent / "sql" / "schema.sql"
-
-
 def upsert(connection, table, df, key):
     """Insert rows; rows whose key already exists are updated."""
     columns = ", ".join(df.columns)
@@ -66,7 +63,6 @@ if __name__ == "__main__":
         # One transaction: either both tables are loaded or nothing changes
         with engine.begin() as connection:
             connection.execute(text("SET LOCAL lock_timeout = '10s'"))
-            connection.execute(text(SCHEMA.read_text()))
             load_dropzones(args.dropzones, connection)  # first, jump_aircraft references it
             load_jump_aircraft(args.jump_aircraft, connection)
     finally:
