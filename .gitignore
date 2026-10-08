@@ -4,4 +4,4 @@ data/raw/
 .terraform/
 *.tfstate*
 data/forecast/
-data/flights/
+scripts/opensky_flights.py
