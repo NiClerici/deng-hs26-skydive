@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS public.flight_history (
     dropzone_id TEXT NOT NULL REFERENCES public.swiss_dropzone(dropzone_id),
     timestamp TIMESTAMP NOT NULL,
     icao24 TEXT NOT NULL,
-    callsign TEXT REFERENCES public.jump_aircraft(callsign_id),
+    callsign TEXT NOT NULL,
     departure_airport TEXT,
     arrival_airport TEXT,
     duration INTEGER,

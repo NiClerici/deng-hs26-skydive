@@ -18,38 +18,34 @@ def upsert(connection, table, df, keys):
     )
 
 
-def load_weather_history(file_path, connection):
-    """Load the weather history CSV into weather_history."""
+def load_flight_history(file_path, connection):
+    """Load the flight history CSV into flight_history."""
 
     dz_id = file_path.stem.split("_")[1]
 
-    # cspell:ignore weathercode
-    weather_history = pd.read_csv(file_path, dtype=str)
-    if "dropzone_id" not in weather_history.columns:
-        weather_history["dropzone_id"] = dz_id
+    flight_history = pd.read_csv(file_path, dtype=str)
+    if "dropzone_id" not in flight_history.columns:
+        flight_history["dropzone_id"] = dz_id
     else:
-        weather_history["dropzone_id"] = weather_history["dropzone_id"].fillna(dz_id)
+        flight_history["dropzone_id"] = flight_history["dropzone_id"].fillna(dz_id)
 
-    weather_history = weather_history.rename(columns={
+    flight_history = flight_history.rename(columns={
         "date": "timestamp",
-        "temperature_2m": "temperature_2m_c",
-        "wind_speed_10m": "wind_speed_10m_mps",
-        "wind_gusts_10m": "wind_gusts_10m_mps",
-        "cloud_cover_low": "cloud_cover_low_percent",
-        "precipitation": "precipitation_mm",
-        "visibility": "visibility_m",
-        "wind_speed_850hPa": "wind_speed_850hpa_mps",
-        "wind_speed_700hPa": "wind_speed_700hpa_mps",
+        "icao24": "icao24",
+        "callsign": "callsign",
+        "DepartureAirport": "departure_airport",
+        "ArrivalAirport": "arrival_airport",
+        "Duration": "duration",
     })
-    if weather_history.empty:
-        raise ValueError("The weather history CSV is empty; existing database rows were not changed.")
+    if flight_history.empty:
+        raise ValueError("The flight history CSV is empty; existing database rows were not changed.")
 
-    upsert(connection, "weather_history", weather_history, ("dropzone_id", "timestamp"))
-    print(f"Loaded {len(weather_history):,} rows into weather_history.")
+    upsert(connection, "flight_history", flight_history, ("dropzone_id", "timestamp", "icao24"))
+    print(f"Loaded {len(flight_history):,} rows into flight_history.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dir", type=Path, default=Path("data/past"), help="Folder with the weather history CSVs")
+    parser.add_argument("--dir", type=Path, default=Path("data/flights"), help="Folder with the flight history CSVs")
     args = parser.parse_args()
     url = URL.create(
         "postgresql+psycopg", host=os.environ.get("POSTGRES_HOST", "postgres"),
@@ -62,6 +58,6 @@ if __name__ == "__main__":
         with engine.begin() as connection:
             connection.execute(text("SET LOCAL lock_timeout = '10s'"))
             for file_path in sorted(args.dir.glob("*.csv")):
-                load_weather_history(file_path, connection)
+                load_flight_history(file_path, connection)
     finally:
         engine.dispose()
