@@ -1,23 +1,18 @@
-"""Fetch departures from every dropzone in swiss_dropzones.csv via the OpenSky API.
-
-    uv run --env-file .env python script/opensky_flights.py --start 2026-09-01 --end 2026-09-30
-
-Without --start/--end it fetches the last 10 days up to yesterday (OpenSky only has data up to the previous day).
-All departures go to data/raw/, the flights of the planes in data/jump_aircraft.csv to data/.
-"""
 import argparse
 import os
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
 import requests
+from dotenv import load_dotenv
 
 TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
 API_URL = "https://opensky-network.org/api/flights/departure"
 DATA = Path(__file__).resolve().parent.parent / "data"
-CHUNK = 2 * 24 * 3600  # OpenSky allows at most 2 days per request
+CHUNK = timedelta(days=2)  # OpenSky allows at most 2 days per request
+COLUMNS = ["date", "icao24", "callsign", "DepartureAirport", "ArrivalAirport", "Duration"]
 
 session = requests.Session()
 
@@ -48,43 +43,48 @@ def departures(airport, begin, end):
 
 
 def main():
-    yesterday = date.today() - timedelta(days=1)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--start", type=date.fromisoformat, default=yesterday - timedelta(days=9))
-    parser.add_argument("--end", type=date.fromisoformat, default=yesterday)
+    parser.add_argument("--start", type=date.fromisoformat, default=date(2026, 1, 1))
+    parser.add_argument("--end", type=date.fromisoformat, default=date(2026, 9, 30))
     args = parser.parse_args()
 
-    start = int(pd.Timestamp(args.start, tz="UTC").timestamp())
-    end = int(pd.Timestamp(args.end + timedelta(days=1), tz="UTC").timestamp())
+    start = datetime.combine(args.start, datetime.min.time(), timezone.utc)
+    end = datetime.combine(args.end + timedelta(days=1), datetime.min.time(), timezone.utc)
 
-    dropzones = pd.read_csv(DATA / "swiss_dropzones.csv")
-    jump_aircraft = pd.read_csv(DATA / "jump_aircraft.csv", dtype=str)
-    (DATA / "raw").mkdir(exist_ok=True)
+    load_dotenv()
     login()
+    dropzones = pd.read_csv(DATA / "swiss_dropzones.csv")
+    (DATA / "flights").mkdir(exist_ok=True)
 
     for dz in dropzones.itertuples():
-        flights = []
-        for begin in range(start, end, CHUNK):
-            flights += departures(dz.dz_id, begin, min(begin + CHUNK, end))
+        csv_path = DATA / "flights" / f"flight_{dz.dz_id}_{dz.name.replace(' ', '_').lower()}.csv"
+        progress_path = DATA / "flights" / f".progress_{dz.dz_id}.txt"
 
-        df = pd.DataFrame(flights, columns=["icao24", "callsign", "firstSeen", "lastSeen",
-                                            "estDepartureAirport", "estArrivalAirport"])
-        df = pd.DataFrame({
-            "icao24": df["icao24"],
-            "callsign": df["callsign"].str.strip(),
-            "first_seen_utc": pd.to_datetime(df["firstSeen"], unit="s"),
-            "last_seen_utc": pd.to_datetime(df["lastSeen"], unit="s"),
-            "duration_min": ((df["lastSeen"] - df["firstSeen"]) / 60).round(1),
-            "dep_airport": df["estDepartureAirport"],
-            "arr_airport": df["estArrivalAirport"],
-        }).sort_values("first_seen_utc")
+        day = start
+        if progress_path.exists():
+            day = max(start, datetime.fromisoformat(progress_path.read_text().strip()))
+        print(f"{dz.dz_id}: {day.date()} -> {args.end}")
 
-        jumps = df[df["icao24"].isin(jump_aircraft.loc[jump_aircraft["dz_id"] == dz.dz_id, "icao24"])]
+        while day < end:
+            day_end = min(day + CHUNK, end)
+            flights = departures(dz.dz_id, int(day.timestamp()), int(day_end.timestamp()) - 1)
 
-        filename = f"flights_{dz.dz_id.lower()}_{args.start}_{args.end}.csv"
-        df.to_csv(DATA / "raw" / filename, index=False)
-        jumps.to_csv(DATA / filename, index=False)
-        print(f"{dz.dz_id}: {len(jumps)} of {len(df)} flights by jump planes -> {filename}")
+            df = pd.DataFrame({
+                "date": [datetime.fromtimestamp(f["firstSeen"], timezone.utc).strftime("%Y-%m-%d %H:%M:%S") for f in flights],
+                "icao24": [f["icao24"] for f in flights],
+                "callsign": [(f["callsign"] or "").strip() for f in flights],
+                "DepartureAirport": dz.dz_id,
+                "ArrivalAirport": [f["estArrivalAirport"] for f in flights],
+                "Duration": [f["lastSeen"] - f["firstSeen"] for f in flights],
+            }, columns=COLUMNS)
+            if len(df):
+                df.to_csv(csv_path, mode="a", index=False, header=not csv_path.exists())
+
+            print(f"  {dz.dz_id} {day.date()} -> {day_end.date()}: {len(df)} flights", flush=True)
+
+            # only written after a successful request, so a rerun resumes here
+            progress_path.write_text(day_end.isoformat())
+            day = day_end
 
 
 if __name__ == "__main__":
