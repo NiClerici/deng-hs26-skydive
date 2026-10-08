@@ -39,12 +39,12 @@ def load_jump_aircraft(file_path, connection):
     """Load the jump aircraft CSV into jump_aircraft."""
 
     jump_aircraft = pd.read_csv(file_path, dtype=str).rename(columns={
-        "dz_id": "dropzone_id", "registration": "registration_id",
+        "dz_id": "dropzone_id", "registration": "callsign_id",
     })
     if jump_aircraft.empty:
         raise ValueError("The jump aircraft CSV is empty; existing database rows were not changed.")
 
-    upsert(connection, "jump_aircraft", jump_aircraft, "registration_id")
+    upsert(connection, "jump_aircraft", jump_aircraft, "callsign_id")
     print(f"Loaded {len(jump_aircraft):,} rows into jump_aircraft.")
 
 

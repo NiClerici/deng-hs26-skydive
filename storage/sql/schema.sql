@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.swiss_dropzone (
 );
 
 CREATE TABLE IF NOT EXISTS public.jump_aircraft (
-    registration_id TEXT PRIMARY KEY,
+    callsign_id TEXT PRIMARY KEY,
     dropzone_id TEXT NOT NULL REFERENCES public.swiss_dropzone(dropzone_id),
     icao24 TEXT  -- hex transponder code, e.g. 4b4488
 );
@@ -24,4 +24,15 @@ CREATE TABLE IF NOT EXISTS public.weather_history (
     wind_speed_850hpa_mps DOUBLE PRECISION,
     wind_speed_700hpa_mps DOUBLE PRECISION,
     PRIMARY KEY (dropzone_id, timestamp)
+);
+
+CREATE TABLE IF NOT EXISTS public.flight_history (
+    dropzone_id TEXT NOT NULL REFERENCES public.swiss_dropzone(dropzone_id),
+    timestamp TIMESTAMP NOT NULL,
+    icao24 TEXT NOT NULL,
+    callsign TEXT REFERENCES public.jump_aircraft(callsign_id),
+    departure_airport TEXT,
+    arrival_airport TEXT,
+    duration INTEGER,
+    PRIMARY KEY (dropzone_id, timestamp, icao24)
 );
