@@ -39,6 +39,28 @@ services:
     networks: [skydive]
     command: ["sh", "-c", "python script/meteo_past.py && python script/meteo_forecast.py"]
 
+  daily_ingestion:
+    build:
+      context: ..
+      dockerfile: storage/Dockerfile
+    env_file: ../.env  # OpenSky CLIENT_ID / CLIENT_SECRET + Postgres credentials
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    volumes:
+      - ../data:/app/data:ro  # swiss_dropzones.csv is only read
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [skydive]
+    # Runs both daily scripts, then sleeps 24 h. A failing script does not stop the loop.
+    command: >
+      sh -c "while true; do
+      python daily_ingestion/forecast_ingestion_weather.py;
+      python daily_ingestion/daily_ingestion_flight.py;
+      sleep 86400; done"
+
   pgadmin:
     image: dpage/pgadmin4:9
     env_file: ../.env  # PGADMIN_DEFAULT_EMAIL, PGADMIN_DEFAULT_PASSWORD

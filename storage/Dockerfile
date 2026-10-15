@@ -12,3 +12,4 @@ RUN uv sync --frozen --no-dev --no-install-project
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY script/ script/
+COPY daily_ingestion/ daily_ingestion/
