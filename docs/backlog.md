@@ -6,16 +6,16 @@ Owner in brackets, see [division of responsibilities](architecture.md#division-o
 - [x] README, data sources, use case, Architecture v0.1 (Both)
 - [x] Division of responsibilities (Both)
 - [x] Verify dropzone coordinates (Jan)
-- [ ] Identify jump aircraft for LSZL, LSZO, LSZG, LSZK (Nico)
+- [X] Identify jump aircraft for LSZL, LSZO, LSZG, LSZK (Nico)
 
 **Midterm (W7, submit by Thu 22.10.2026 15:30)**
-- [ ] Ingestion scripts: weather, forecast (Jan), flights (Nico)
-- [ ] Seed list of jump aircraft, `data/jump_aircraft.csv` (Nico)
-- [ ] Weather backfill script, Historical Forecast API (Jan)
-- [ ] Postgres schema + Docker Compose (Nico)
-- [ ] Airflow DAG with backfill and retries (Jan)
-- [ ] First transformation: join weather and flights (Both)
-- [ ] Architecture v0.2, setup and verification steps (Both)
+- [x] Ingestion scripts: weather, forecast (Jan), flights (Nico)
+- [x] Seed list of jump aircraft, `data/jump_aircraft.csv` (Nico)
+- [x] Weather backfill script, Historical Forecast API (Jan)
+- [x] Postgres schema + Docker Compose (Nico)
+- [x] Prefect flows with schedule, backfill and retries (replaces Airflow) (Jan)
+- [x] First transformation: join weather and flights (Both)
+- [x] Architecture v0.2, setup and verification steps (Both)
 
 **Final (W14, submit by Thu 10.12.2026 20:00)**
 - [ ] Terraform: GCS + BigQuery (Nico)

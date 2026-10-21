@@ -1,4 +1,4 @@
-# Architecture v0.1
+# Architecture v0.2
 
 ```mermaid
 flowchart LR
@@ -10,9 +10,12 @@ flowchart LR
     RAW --> TRF[SQL transformation: weather + flights]
     TRF --> CUR[(Curated: Postgres, later BigQuery)]
     CUR --> MOD[Prediction: jumpable next 7 days]
-    AF[Airflow in Docker Compose] -.schedules.-> ING
-   
+    PF[Prefect in Docker Compose] -.schedules, retries, backfills.-> ING
 ```
+
+## Changes from v0.1
+- **Orchestrator: Prefect instead of Airflow.** The midterm requires scheduling, reruns and backfills for two small daily jobs. Prefect covers this with plain Python (`@flow` / `@task`) and one extra container, while Airflow would need its own image, metadata database and DAG setup. The trade-off: Airflow is more common in industry and has `catchup` built in, whereas our backfill is an explicit flow with `start` / `end` parameters.
+- The daily flights load now takes the day as a parameter (default: yesterday), which makes backfills and reruns of a specific day possible.
 
 
 ## Ingestion strategy
@@ -28,6 +31,6 @@ Each of us owns one **data source end to end** (ingestion → raw → staging) a
 | Area | Nico Clerici | Jan Walker |
 |---|---|---|
 | Data source | Flights (OpenSky): ingestion, rate limits, identifying jump aircraft, hourly "jump happened" label | Weather (Open-Meteo): historical + forecast ingestion, variable choice, time-zone handling |
-| Platform, midterm | PostgreSQL schema, Docker Compose | Airflow DAGs: schedule, retries, backfill |
+| Platform, midterm | PostgreSQL schema, Docker Compose | Prefect flows: schedule, retries, backfill |
 | Platform, final | Terraform (GCS bucket, BigQuery dataset) | Cloud ingestion path to GCS, data-quality checks |
 | Shared | Join weather + flights, data model (grain, partitioning), prediction, README / verification steps, Architecture v0.2 and final | ← same |

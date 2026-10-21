@@ -1,6 +1,7 @@
-# Local stack: PostgreSQL + pgAdmin + Python ingestion container.
+# Local stack: PostgreSQL + pgAdmin + Python ingestion container + Prefect orchestrator.
 # Run from the repo root:
 #   docker compose -f storage/docker-compose.yml up -d postgres pgadmin   (pgAdmin: http://localhost:5050)
+#   docker compose -f storage/docker-compose.yml up -d --build orchestrator daily_ingestion   (Prefect UI: http://localhost:4200)
 #   docker compose -f storage/docker-compose.yml run --rm ingestion python script/meteo_past.py
 # Credentials come from ../.env (see .env.example), nothing is hardcoded here.
 
@@ -14,7 +15,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./sql:/docker-entrypoint-initdb.d:ro #docker-entrypoint-initdb.d is a path from docker that executes scripts on first container start
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro  # only the schema runs on first start; the other .sql files are ad-hoc queries    
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -47,19 +48,18 @@ services:
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      PREFECT_API_URL: http://orchestrator:4200/api  # service name on the compose network
     volumes:
       - ../data:/app/data:ro  # swiss_dropzones.csv is only read
     depends_on:
       postgres:
         condition: service_healthy
+      orchestrator:
+        condition: service_healthy
     restart: unless-stopped
     networks: [skydive]
-    # Runs both daily scripts, then sleeps 24 h. A failing script does not stop the loop.
-    command: >
-      sh -c "while true; do
-      python daily_ingestion/forecast_ingestion_weather.py;
-      python daily_ingestion/daily_ingestion_flight.py;
-      sleep 86400; done"
+    # Prefect serve: registers the "daily" (scheduled) and "backfill" (manual) deployments and runs them
+    command: python daily_ingestion/flow.py
 
   pgadmin:
     image: dpage/pgadmin4:9
@@ -74,8 +74,22 @@ services:
         condition: service_healthy
     networks: [skydive]
 
+  orchestrator:
+    image: prefecthq/prefect:3-latest
+    command: prefect server start --host 0.0.0.0
+    ports:
+      - "4200:4200"
+    volumes:
+      - prefect_data:/root/.prefect  # run history (SQLite) survives restarts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4200/api/health')"]
+      interval: 10s
+      retries: 10
+    networks: [skydive]
+
 volumes:
   pgdata:
+  prefect_data:
   pgadmin:
 
 networks:

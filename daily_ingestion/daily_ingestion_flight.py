@@ -28,12 +28,11 @@ def upsert(connection, table, df, keys):
     )
 
 
-def load_flight_data():
+def load_flight_data(day):
     dropzones_df = pd.read_csv(DROPZONES_CSV, usecols=["dz_id","name"],index_col=False)
-    yesterday = datetime.datetime.now(TZ).date() - datetime.timedelta(days=1)
 
-    yesterday_03 = datetime.datetime.combine(yesterday, datetime.time(3, 0, 0), tzinfo=TZ)
-    yesterday_23 = datetime.datetime.combine(yesterday, datetime.time(23, 0, 0), tzinfo=TZ)
+    day_03 = datetime.datetime.combine(day, datetime.time(3, 0, 0), tzinfo=TZ)
+    day_23 = datetime.datetime.combine(day, datetime.time(23, 0, 0), tzinfo=TZ)
 
     flight_history = {
         "date": [],"dropzone_id":[],"icao24": [],"callsign": [],"DepartureAirport": [],
@@ -45,7 +44,7 @@ def load_flight_data():
         name = dz["name"]
         print("Dropzone: ",name)
 
-        departues = api.get_departures_by_airport(icao,int(yesterday_03.timestamp()),int(yesterday_23.timestamp())-1)
+        departues = api.get_departures_by_airport(icao,int(day_03.timestamp()),int(day_23.timestamp())-1)
 
         for flight in departues or []:
             flight_history["date"].append(datetime.datetime.fromtimestamp(flight.firstSeen, TZ).strftime("%Y-%m-%d %H:%M:%S"))
@@ -71,13 +70,15 @@ def ingest_flight_history(flight_history: pd.DataFrame, connection):
     })
 
     if flight_history.empty:
-        print("no flights yesterday")
+        print("no flights for this day")
         return
 
     upsert(connection, "flight_history", flight_history, ("dropzone_id", "timestamp", "icao24"))
     print(f"Loaded {len(flight_history):,} rows into flight_history.")
 
-def main():
+def main(day=None):
+    if day is None:
+        day = datetime.datetime.now(TZ).date() - datetime.timedelta(days=1)
     url = URL.create(
         "postgresql+psycopg", host=os.environ.get("POSTGRES_HOST", "postgres"),
         port=int(os.environ.get("POSTGRES_PORT", 5432)), database=os.environ["POSTGRES_DB"],
@@ -88,7 +89,7 @@ def main():
             # One transaction: either all rows are loaded or nothing changes
             with engine.begin() as connection:
                 connection.execute(text("SET LOCAL lock_timeout = '10s'"))
-                ingest_flight_history(load_flight_data(), connection)
+                ingest_flight_history(load_flight_data(day), connection)
     finally:    
             engine.dispose()
 

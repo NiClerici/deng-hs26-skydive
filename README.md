@@ -35,7 +35,7 @@ Locations: [`data/swiss_dropzones.csv`](data/swiss_dropzones.csv), 6 Swiss dropz
 - UTC vs local time when joining weather and flights.
 
 ## Planned stack
-Python ingestion, Apache Airflow, Docker Compose, PostgreSQL (local); Terraform, GCS, BigQuery (final); classifier on weather features for the prediction.
+Python ingestion, Prefect (orchestration), Docker Compose, PostgreSQL (local); Terraform, GCS, BigQuery (final); classifier on weather features for the prediction.
 
 ## Getting started
 1. `uv sync`
@@ -48,8 +48,37 @@ With Docker instead (PostgreSQL + ingestion container, needs the Postgres variab
 3. Check the database: `docker compose -f storage/docker-compose.yml exec postgres psql -U skydive -d skydive`
 4. Stop: `docker compose -f storage/docker-compose.yml down` (add `-v` to also delete the database volume)
 
+## Orchestration
+[Prefect](https://docs.prefect.io) schedules and runs the daily ingestion ([`daily_ingestion/flow.py`](daily_ingestion/flow.py)). It replaced the earlier plan to use Airflow: Prefect is plain Python (`@flow` / `@task`), needs no extra image or DAG folder, and covers scheduling, retries, reruns and backfills for our two daily jobs.
+
+Start it (needs the Postgres and OpenSky variables from `.env.example` in `.env`):
+```
+docker compose -f storage/docker-compose.yml up -d --build postgres orchestrator daily_ingestion
+```
+The UI is at <http://localhost:4200> (Deployments).
+
+| Deployment | Trigger | What it does |
+|---|---|---|
+| `daily-ingestion/daily` | cron `0 4 * * *` (04:00 UTC, i.e. 05:00 / 06:00 Zurich) | full refresh of the 7-day forecast, then the flights of the previous day |
+| `backfill-flights/backfill` | manual, parameters `start` and `end` (YYYY-MM-DD) | loads the flights of every day in the range, one task per day |
+
+- **Retries:** forecast 3x after 5 min, flights 3x after 15 min (OpenSky rate limit).
+- **Rerun:** click *Run* on `daily` in the UI. The day is derived from the scheduled start time, so a rerun loads the same day again. Loads are upserts (`ON CONFLICT DO UPDATE`) in one transaction, so a rerun never creates duplicates.
+- **Backfill:** *Run* -> *Custom run* on `backfill` in the UI, or
+  ```
+  docker compose -f storage/docker-compose.yml exec daily_ingestion \
+    prefect deployment run 'backfill-flights/backfill' --param start=2026-10-15 --param end=2026-10-17
+  ```
+- **Verify:** after a run, `docker compose -f storage/docker-compose.yml exec postgres psql -U skydive -d skydive -c "SELECT date(timestamp), count(*) FROM flight_history GROUP BY 1 ORDER BY 1 DESC LIMIT 5;"` shows the loaded days. A second run of the same day leaves the counts unchanged.
+
+Known limitations:
+- Forecast and flights run one after the other in the same flow: if the forecast task fails for good, the flights of that day are not loaded until the flow is rerun.
+- The historical weather backfill is not part of the orchestrator (`script/meteo_past.py`, run once by hand); the forecast is a full refresh and cannot be backfilled.
+- A long flight backfill can hit the OpenSky quota; use short date ranges.
+- Prefect stores its run history in SQLite (volume `prefect_data`), which is fine locally but not for production.
+
 ## Docs
-- [Architecture v0.1 and division of responsibilities](docs/architecture.md)
+- [Architecture v0.2 and division of responsibilities](docs/architecture.md)
 - [Backlog](docs/backlog.md)
 
 ## Team
