@@ -8,7 +8,7 @@ Owner in brackets, see [division of responsibilities](architecture.md#division-o
 - [x] Verify dropzone coordinates (Jan)
 - [X] Identify jump aircraft for LSZL, LSZO, LSZG, LSZK (Nico)
 
-**Midterm (W7, submit by Thu 22.10.2026 15:30)**
+**Midterm (W7, submit by Thu 26.10.2026 00:00)**
 - [x] Ingestion scripts: weather, forecast (Jan), flights (Nico)
 - [x] Seed list of jump aircraft, `data/jump_aircraft.csv` (Nico)
 - [x] Weather backfill script, Historical Forecast API (Jan)
