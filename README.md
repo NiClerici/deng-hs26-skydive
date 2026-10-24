@@ -48,14 +48,41 @@ With Docker instead (PostgreSQL + ingestion container, needs the Postgres variab
 3. Check the database: `docker compose -f storage/docker-compose.yml exec postgres psql -U skydive -d skydive`
 4. Stop: `docker compose -f storage/docker-compose.yml down` (add `-v` to also delete the database volume)
 
+## Transformation
+Two SQL views turn the loaded tables into the midterm data product: for every hour of the 7-day forecast, **is the weather inside the range in which jump aircraft actually flew?** They are plain SQL in `storage/sql/`, are not created automatically and are applied in [instruction.md](docs/instruction.md), step 7.
+
+| View (file) | Reads | One row | Purpose |
+|---|---|---|---|
+| `jumpability_range` ([`get_jumpability_range.sql`](storage/sql/get_jumpability_range.sql)) | `flight_history`, `jump_aircraft`, `weather_history` | the whole dataset (one row) | The weather limits (temperature, wind, gusts, low cloud, rain, visibility, wind at 850 / 700 hPa) under which jump flights took place |
+| `jumpable_time` ([`get_jumpable_time.sql`](storage/sql/get_jumpable_time.sql)) | `weather_forecast`, `jumpability_range` | dropzone x forecast hour (UTC) | Per-variable flags (`temp_ok`, `wind_ok`, ...) and `jumpable` = all flags true |
+
+Why each step is there:
+
+| Step | Reason |
+|---|---|
+| Only known jump aircraft of that dropzone (`icao24` + dropzone) that land where they took off | OpenSky returns every departure (flight school, private, rescue). Flights that land elsewhere are repositioning flights, not jump sorties. |
+| Flight durations outside the IQR fences (Q1 - 1.5 IQR, Q3 + 1.5 IQR) are dropped, per dropzone | Removes cross-country and sightseeing flights. Per dropzone, because a sortie at Bex (median about 29 min) is not comparable with one at Reichenbach (about 16 min). |
+| Every flight hour counts once | Hours with many departures must not weigh more than others. |
+| Flight time (UTC) converted to Europe/Zurich before joining the weather | `weather_history` holds Zurich wall-clock time, the backfilled `flight_history` holds UTC. Joined as stored, every flight would be matched to the weather 1 to 2 hours off. |
+| Limits are the 5th and 95th percentile of the remaining flight hours, not min and max | One flight in a storm would otherwise widen the range until nothing is ruled out. The columns keep their `min_` / `max_` names. |
+| In `jumpable_time` only the bad direction excludes an hour (wind, gusts, low cloud, rain, wind aloft above the limit, visibility below it); temperature is checked on both sides | Calm air and good visibility are never a reason to say no. |
+| `jumpability_range` is joined to every forecast hour with `CROSS JOIN` | It has exactly one row. |
+
+`get_callsigns.sql` and `get_jump_aircraft_duration_range.sql` are analysis queries, not part of the pipeline: they were used to find jump-aircraft candidates for `data/jump_aircraft.csv`.
+
+Known limitations of the transformation:
+- **Rule, not a model.** the transformation checks only the hourly forecast so there could be some strong switches from the weather characteristics during that time that could lead to wrong data.
+- **One global range** for all dropzones, and no daylight check, so night hours can come out as jumpable.
+- **Only Bex and Reichenbach are reliable.** `jump_aircraft.csv` has one unverified aircraft each for LSZG, LSZK, LSZL and LSZO, so the range rests on LSGB and LSGR (704 and 708 flights; 19 to 20 for LSZG and LSZL, none for LSZK and LSZO).
+
 ## Orchestration
 [Prefect](https://docs.prefect.io) schedules and runs the daily ingestion ([`daily_ingestion/flow.py`](daily_ingestion/flow.py)). It replaced the earlier plan to use Airflow: Prefect is plain Python (`@flow` / `@task`), needs no extra image or DAG folder, and covers scheduling, retries, reruns and backfills for our two daily jobs.
 
 Start it (needs the Postgres and OpenSky variables from `.env.example` in `.env`):
 ```
-docker compose -f storage/docker-compose.yml up -d --build postgres orchestrator daily_ingestion
+docker compose -f storage/docker-compose.yml up -d --build postgres orchestrator daily_ingestion pgadmin
 ```
-The UI is at <http://localhost:4200> (Deployments).
+The UI is at <http://localhost:4200> (Deployments). pgAdmin to browse the database is at <http://localhost:5050> (login from `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` in `.env`, the `skydive` server is pre-registered). Full run and verification steps: [instruction.md](docs/instruction.md).
 
 | Deployment | Trigger | What it does |
 |---|---|---|
@@ -74,10 +101,13 @@ The UI is at <http://localhost:4200> (Deployments).
 Known limitations:
 - Forecast and flights run one after the other in the same flow: if the forecast task fails for good, the flights of that day are not loaded until the flow is rerun.
 - The historical weather backfill is not part of the orchestrator (`script/meteo_past.py`, run once by hand); the forecast is a full refresh and cannot be backfilled.
+- The history CSVs are loaded into Postgres by hand (`storage/scripts/weather_history_data_ingest.py`, `flight_history_data_ingest.py`, see [instruction.md](docs/instruction.md), step 4); the flows only load the forecast and new flights.
+- If OpenSky rejects the credentials (`401`) the flights task fails after its retries, but the forecast of that run is already stored.
 - A long flight backfill can hit the OpenSky quota; use short date ranges.
 - Prefect stores its run history in SQLite (volume `prefect_data`), which is fine locally but not for production.
 
 ## Docs
+- [Instructions: run and verify the local pipeline](docs/instruction.md)
 - [Architecture v0.2 and division of responsibilities](docs/architecture.md)
 - [Backlog](docs/backlog.md)
 
