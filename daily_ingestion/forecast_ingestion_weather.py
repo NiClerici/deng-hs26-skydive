@@ -93,6 +93,7 @@ def ingest_weather_forecast(weather_forecast: pd.DataFrame,connection):
     if weather_forecast.empty:
             raise RuntimeError("no weather forecast data == we gonna die")
 
+    connection.execute(text("DELETE FROM public.weather_forecast"))
     upsert(connection, "weather_forecast", weather_forecast, ("dropzone_id", "timestamp"))
     print(f"Loaded {len(weather_forecast):,} rows into weather_forecast.")
 

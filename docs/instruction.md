@@ -68,7 +68,7 @@ Expected:
 - `jumpable_time`: one row per dropzone and forecast hour (about 167 per dropzone, 1,002 in total). `jumpable_hours` depends on the forecast of the day; it is between 0 and `hours`, normally clearly below `hours`.
 
 ## 8. Rerun
-Start `daily-ingestion/daily` again. The state is **Completed** and the row counts from step 6 stay the same (loads are upserts); `jumpable_time` follows the new forecast without a rerun of step 7, it is a view.
+Start `daily-ingestion/daily` again. The state is **Completed** and the row counts from step 6 stay the same (flights are upserts, the forecast is deleted and reloaded in one transaction, so it always holds only the current 7 days); `jumpable_time` follows the new forecast without a rerun of step 7, it is a view.
 
 ## 9. Backfill
 UI: `backfill-flights/backfill` -> **Run** -> **Custom run** with `start` and `end` (YYYY-MM-DD). Or:

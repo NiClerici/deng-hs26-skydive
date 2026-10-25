@@ -90,7 +90,7 @@ The UI is at <http://localhost:4200> (Deployments). pgAdmin to browse the databa
 | `backfill-flights/backfill` | manual, parameters `start` and `end` (YYYY-MM-DD) | loads the flights of every day in the range, one task per day |
 
 - **Retries:** forecast 3x after 5 min, flights 3x after 15 min (OpenSky rate limit).
-- **Rerun:** click *Run* on `daily` in the UI. The day is derived from the scheduled start time, so a rerun loads the same day again. Loads are upserts (`ON CONFLICT DO UPDATE`) in one transaction, so a rerun never creates duplicates.
+- **Rerun:** click *Run* on `daily` in the UI. The day is derived from the scheduled start time, so a rerun loads the same day again. Flight loads are upserts (`ON CONFLICT DO UPDATE`) in one transaction, so a rerun never creates duplicates. The forecast load deletes the old `weather_forecast` rows and inserts the new ones in one transaction: a rerun gives the same table, and a failed run keeps the previous forecast.
 - **Backfill:** *Run* -> *Custom run* on `backfill` in the UI, or
   ```
   docker compose -f storage/docker-compose.yml exec daily_ingestion \
